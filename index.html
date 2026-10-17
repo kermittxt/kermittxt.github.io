@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#04050b">
+    <meta name="description" content="A living, evolving 3D neural network visualizer.">
+    <title>AI Neural Network Visualizer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./style.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <div id="scene" class="scene" aria-label="Animated 3D visualization of a learning neural network"></div>
+
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="AI Neural Network Visualizer home">
+          <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+          <span class="brand-copy">
+            <span class="eyebrow">COGNITIVE SYSTEMS / 01</span>
+            <span class="brand-title">AI Neural Network <span>Visualizer</span></span>
+          </span>
+        </a>
+        <div class="system-status"><span class="status-dot"></span><span>LIVE SIMULATION</span></div>
+      </header>
+
+      <section class="stats-panel glass-panel" aria-label="Network statistics">
+        <div class="section-label"><span class="tiny-cross">✳</span> NETWORK TELEMETRY</div>
+        <div class="stats-grid">
+          <div class="stat">
+            <span class="stat-label">ACTIVE REQUESTS</span>
+            <span class="stat-value" id="active-requests">00</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">ACTIVE CAPSULES</span>
+            <span class="stat-value" id="active-capsules">000</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">NEURONS</span>
+            <span class="stat-value" id="neuron-count">1,200</span>
+          </div>
+        </div>
+        <div class="learning-row">
+          <span class="learning-indicator"></span>
+          <span id="learning-status">ADAPTIVE LEARNING</span>
+          <span class="learning-value" id="learning-count">0 patterns</span>
+        </div>
+      </section>
+
+      <section class="legend-panel glass-panel" aria-label="Neural subsystem legend">
+        <div class="section-label"><span class="tiny-cross">✳</span> NEURAL SUBSYSTEMS</div>
+        <div class="legend-list">
+          <div class="legend-item"><i style="--swatch:#5c91ff"></i><span>Input processing</span></div>
+          <div class="legend-item"><i style="--swatch:#43e5f4"></i><span>Language understanding</span></div>
+          <div class="legend-item"><i style="--swatch:#b57aff"></i><span>Reasoning</span></div>
+          <div class="legend-item"><i style="--swatch:#ffad62"></i><span>Memory</span></div>
+          <div class="legend-item"><i style="--swatch:#6dffad"></i><span>Tools</span></div>
+          <div class="legend-item"><i style="--swatch:#f2f5ff"></i><span>Output</span></div>
+        </div>
+      </section>
+
+      <div class="event-toast glass-panel" id="event-toast" role="status" aria-live="polite">
+        <span class="toast-icon">✳</span>
+        <span class="toast-copy"><strong id="toast-title">New knowledge cluster formed</strong><small id="toast-detail">A new concept is taking shape</small></span>
+      </div>
+
+      <footer class="bottom-bar">
+        <span><span class="footer-dot"></span> SYSTEM EVOLVING <span class="footer-divider">/</span> <span id="uptime">00:00</span></span>
+        <span class="interaction-hint">DRAG TO ROTATE <span>·</span> SCROLL TO ZOOM</span>
+      </footer>
+
+      <div class="loading-state" id="loading-state">
+        <span class="loader"></span>
+        <span>INITIALIZING NEURAL FIELD</span>
+      </div>
+    </main>
+    <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/ConvolutionShader.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script defer src="./app.js"></script>
+  </body>
+</html>
