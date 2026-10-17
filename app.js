@@ -3,9 +3,9 @@ const THREE = window.THREE;
 const ROOT = document.querySelector("#scene");
 const MAX_NEURONS = 1800;
 const MAX_CAPSULES = 24;
-const MAX_ACTIVE_REQUESTS = 3;
 const INITIAL_NEURONS = 1543;
 const EDGE_CAPACITY = 10000;
+const REQUEST_INTERVAL_SECONDS = 12;
 const CATEGORIES = ["reasoning", "coding", "math", "language", "planning", "creative", "vision", "tool_use", "memory", "science", "history", "general_chat"];
 const CATEGORY_COLORS = {
   reasoning: 0x448aff,
@@ -81,13 +81,13 @@ const regionCenters = Object.fromEntries(CATEGORIES.map((category, index) => {
 }));
 const clusterCenters = new Map();
 let elapsed = 0;
-let nextRequestAt = 2.5;
 let nextAmbientPulse = 5;
 let lastUiUpdate = 0;
 let lastPruneCheck = 0;
 let renderedRequestKey = null;
+let lastGlobalRequestSlot = null;
+let lastHistorySlot = null;
 let toastTimeout;
-let requestSequence = 0;
 
 for (const [region, center] of Object.entries(regionCenters)) clusterCenters.set(region, center.clone());
 
@@ -278,22 +278,6 @@ for (let i = 0; i < INITIAL_NEURONS; i++) {
 }
 nodeMesh.count = neurons.length;
 
-function chooseCategory() {
-  const roll = Math.random();
-  if (roll < 0.15) return "reasoning";
-  if (roll < 0.30) return "coding";
-  if (roll < 0.39) return "math";
-  if (roll < 0.53) return "language";
-  if (roll < 0.63) return "planning";
-  if (roll < 0.70) return "creative";
-  if (roll < 0.76) return "vision";
-  if (roll < 0.83) return "tool_use";
-  if (roll < 0.89) return "memory";
-  if (roll < 0.93) return "science";
-  if (roll < 0.96) return "history";
-  return "general_chat";
-}
-
 function chooseStart(category) {
   const desiredRegions = CATEGORY_REGIONS[category];
   let best = -1;
@@ -349,29 +333,45 @@ function addCapsule(request, startNode) {
   });
 }
 
-function chooseRequestColor() {
-  const usedColors = new Set(requests.map(request => request.color.getHex()));
-  const available = REQUEST_COLORS.filter(color => !usedColors.has(color));
-  return available[Math.floor(Math.random() * available.length)] || CATEGORY_COLORS.general_chat;
+function requestHash(value, salt = 0) {
+  let hash = (value ^ salt) >>> 0;
+  hash = Math.imul(hash ^ (hash >>> 16), 0x21f0aaad);
+  hash = Math.imul(hash ^ (hash >>> 15), 0x735a2d97);
+  return (hash ^ (hash >>> 15)) >>> 0;
 }
 
-function createRequest() {
-  const category = chooseCategory();
-  const id = `REQ-${String(++requestSequence).padStart(4, "0")}`;
+function categoryForRequestSlot(slot) {
+  return CATEGORIES[requestHash(slot, 0x41c64e6d) % CATEGORIES.length];
+}
+
+function syncRecentRequestHistory(now, currentSlot) {
+  if (currentSlot === lastHistorySlot) return;
+  lastHistorySlot = currentSlot;
+  recentRequests.length = 0;
+  const oldestSlot = Math.max(0, Math.floor((now - 180) / REQUEST_INTERVAL_SECONDS));
+  for (let slot = oldestSlot; slot <= currentSlot; slot++) {
+    const time = slot * REQUEST_INTERVAL_SECONDS;
+    if (time <= now) recentRequests.push({ category: categoryForRequestSlot(slot), time });
+  }
+}
+
+function createRequest(slot, startedAt, lifetime) {
+  const category = categoryForRequestSlot(slot);
   const request = {
-    id,
+    id: `REQ-${String(slot).padStart(10, "0")}`,
+    slot,
     category,
-    color: new THREE.Color(chooseRequestColor()),
-    age: 0,
-    lifetime: 6 + Math.random() * 5,
+    color: new THREE.Color(REQUEST_COLORS[requestHash(slot, 0x9e3779b9) % REQUEST_COLORS.length]),
+    startedAt,
+    age: Math.max(0, Date.now() / 1000 - startedAt),
+    lifetime,
     finished: false,
     fade: 1
   };
   requests.push(request);
   knowledge[category] += 1;
-  recentRequests.push({ category, time: elapsed });
   const start = chooseStart(category);
-  const count = 1 + Math.floor(Math.random() * 2);
+  const count = 1 + (requestHash(slot, 0x85ebca6b) % 2);
   if (start >= 0) {
     for (let i = 0; i < count && capsules.length < MAX_CAPSULES; i++) addCapsule(request, start);
     markNeuron(start, 0.7, request);
@@ -430,10 +430,11 @@ function createGrowthEvent(category, discovery = false) {
 }
 
 function checkLearning(category) {
-  const recent = recentRequests.filter(request => elapsed - request.time < 180);
+  const now = Date.now() / 1000;
+  const recent = recentRequests.filter(request => now - request.time < 180);
   const matching = recent.filter(request => request.category === category).length;
-  if (matching >= 3 && elapsed - (growthCooldowns.get(category) ?? -Infinity) > 75) {
-    growthCooldowns.set(category, elapsed);
+  if (matching >= 3 && now - (growthCooldowns.get(category) ?? -Infinity) > 75) {
+    growthCooldowns.set(category, now);
     const discovery = !discoveredClusters.has(category) && matching >= 5;
     createGrowthEvent(category, discovery);
     if (!discovery) showToast("Nodes added", `${category.replaceAll("_", " ")} area grew`, 2600);
@@ -719,10 +720,20 @@ function updateSparks(dt) {
   sparkMesh.instanceColor.needsUpdate = true;
 }
 
-function updateRequests(dt) {
+function updateRequests() {
+  const now = Date.now() / 1000;
+  const slot = Math.floor(now / REQUEST_INTERVAL_SECONDS);
+  syncRecentRequestHistory(now, slot);
+  if (slot !== lastGlobalRequestSlot) {
+    lastGlobalRequestSlot = slot;
+    const startedAt = slot * REQUEST_INTERVAL_SECONDS;
+    const lifetime = 9 + (requestHash(slot, 0xc2b2ae35) / 0xffffffff) * 2.5;
+    if (now - startedAt < lifetime) createRequest(slot, startedAt, lifetime);
+  }
+
   for (let i = requests.length - 1; i >= 0; i--) {
     const request = requests[i];
-    request.age += dt;
+    request.age = Math.max(0, now - request.startedAt);
     request.fade = Math.min(1, Math.max(0, (request.lifetime - request.age) / 1.35));
     if (request.age >= request.lifetime) {
       flashOutput(request);
@@ -749,18 +760,13 @@ function updateAmbient(dt) {
     }
     nextAmbientPulse = elapsed + 2 + Math.random() * 4;
   }
-  if (elapsed >= nextRequestAt && requests.length < MAX_ACTIVE_REQUESTS) {
-    createRequest();
-    nextRequestAt = elapsed + 8 + Math.random() * 8;
-  }
-  while (recentRequests.length && elapsed - recentRequests[0].time > 180) recentRequests.shift();
 }
 
 function updateStats() {
   document.querySelector("#active-requests").textContent = String(requests.length).padStart(2, "0");
   document.querySelector("#active-capsules").textContent = String(capsules.length).padStart(3, "0");
   document.querySelector("#neuron-count").textContent = neurons.filter(node => node.active).length.toLocaleString("en-US");
-  const requestsPerMinute = recentRequests.filter(request => elapsed - request.time < 60).length;
+  const requestsPerMinute = recentRequests.filter(request => Date.now() / 1000 - request.time < 60).length;
   document.querySelector("#learning-count").textContent = `${requestsPerMinute} req / min`;
   renderActiveRequests();
   const minutes = Math.floor(elapsed / 60).toString().padStart(2, "0");
@@ -805,7 +811,7 @@ function animate() {
   const dt = Math.min(clock.getDelta(), 0.1);
   elapsed += dt;
   updateAmbient(dt);
-  updateRequests(dt);
+  updateRequests();
   updateNeurons(dt);
   updateCapsules(dt);
   updateEdges(dt);
