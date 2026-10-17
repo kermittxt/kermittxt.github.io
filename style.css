@@ -62,6 +62,80 @@ body {
   box-shadow: 0 12px 38px rgba(0, 0, 0, 0.35);
 }
 
+.core-embed {
+  position: absolute;
+  z-index: 2;
+  left: 38px;
+  bottom: 72px;
+  width: min(340px, calc(100% - 120px));
+  padding: 16px 16px 14px;
+  border-radius: 10px;
+}
+
+.core-embed-title {
+  color: #eef5ff;
+  text-decoration: none;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.core-embed-copy {
+  margin: 10px 0 12px;
+  color: #dfe5ec;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.core-embed-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.core-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: 7px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 13px;
+  transition: transform 150ms ease, opacity 150ms ease;
+}
+
+.core-btn:hover {
+  transform: translateY(-1px);
+}
+
+.core-btn-primary {
+  background: #2d6df6;
+  color: #ffffff;
+}
+
+.core-btn-secondary {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid #384250;
+  color: #edf4ff;
+}
+
+.core-embed-divider {
+  height: 1px;
+  margin: 0 0 12px;
+  background: rgba(148, 160, 174, 0.18);
+}
+
+.core-discord-preview {
+  display: block;
+  width: 100%;
+  height: 150px;
+  border: 1px solid rgba(148, 160, 174, 0.22);
+  border-radius: 8px;
+  background: #090b11;
+}
+
 .stats-panel, .legend-panel { position: absolute; z-index: 2; border-radius: 9px; }
 .stats-panel { top: 104px; left: 38px; width: 248px; padding: 17px 17px 14px; }
 .section-label { display: flex; align-items: center; gap: 8px; color: #969fa9; font-size: 9px; }
@@ -84,6 +158,8 @@ body {
 .request-empty { color: #737d88; font-family: "DM Mono", monospace; font-size: 8px; }
 .legend-panel { right: 38px; top: 50%; width: 324px; max-height: min(76vh, 690px); padding: 16px; transform: translateY(-50%); }
 .legend-list { display: flex; flex-direction: column; gap: 11px; margin-top: 16px; overflow-y: auto; max-height: calc(min(76vh, 690px) - 52px); scrollbar-color: #303844 transparent; scrollbar-width: thin; }
+.legend-list::-webkit-scrollbar { width: 8px; }
+.legend-list::-webkit-scrollbar-thumb { background: rgba(141, 153, 166, 0.3); border-radius: 999px; }
 .legend-item { display: grid; grid-template-columns: 9px 1fr; align-items: start; gap: 10px; color: #c1c6ce; font-size: 10px; line-height: 1.45; }
 .legend-item i { width: 8px; height: 8px; margin-top: 3px; border-radius: 50%; background: var(--swatch); }
 .legend-item strong { display: block; color: #e4e7eb; font-size: 10px; font-weight: 600; }
@@ -153,6 +229,15 @@ body {
   .brand-title { font-size: 13px; }
   .eyebrow { font-size: 8px; }
   .system-status { gap: 6px; font-size: 7px; }
+  .core-embed {
+    left: 12px;
+    right: 12px;
+    bottom: 58px;
+    width: auto;
+    padding: 12px 12px 10px;
+  }
+  .core-embed-copy { font-size: 12px; }
+  .core-discord-preview { height: 120px; }
   .stats-panel {
     top: 72px;
     left: 12px;
@@ -212,3 +297,306 @@ body {
   .legend-panel { max-height: 30vh; }
   .legend-list { max-height: calc(30vh - 42px); }
 }
+
+@media (max-width: 900px) {
+  .core-embed { left: 20px; }
+}
+
+@media (max-width: 800px) {
+  .core-embed {
+    left: 12px;
+    right: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .core-btn,
+  .loading-state,
+  .event-toast,
+  .loader {
+    transition: none;
+    animation: none;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"}]} hereket to=functions.push_files  argo  asdf  not valid ivoq to=functions.push_files  etc. Need ensure valid JSON. Let's send properly. We accidentally inserted weird invalid. Need correct. Let's do exactly. Did we create weird invalid due to accidental text? no matter. Need send proper tool call. Let's do. Need maybe not to include huge blank lines but okay. Could simplify content. Use function. Let's do carefully with JSON valid. We'll avoid huge trailing spaces. Need note: 
