@@ -1,7 +1,7 @@
 const THREE = window.THREE;
 
 const ROOT = document.querySelector("#scene");
-const MAX_NEURONS = 1543;
+const MAX_NEURONS = 1800;
 const MAX_CAPSULES = 24;
 const MAX_ACTIVE_REQUESTS = 3;
 const INITIAL_NEURONS = 1543;
