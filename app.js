@@ -399,6 +399,7 @@ function clusterPosition(category) {
 
 function createGrowthEvent(category, discovery = false) {
   const target = clusterPosition(category);
+  const startingCount = neurons.length;
   const count = discovery ? 5 : 2 + Math.floor(Math.random() * 2);
   for (let i = 0; i < count && neurons.length < MAX_NEURONS; i++) {
     const end = target.clone().add(randomInSphere(discovery ? 1.8 : 1.25));
@@ -424,7 +425,7 @@ function createGrowthEvent(category, discovery = false) {
   }
   if (discovery) {
     discoveredClusters.add(category);
-    showToast("New knowledge cluster formed", `${category.replace("_", " ")} is taking shape`, 5000);
+    showToast("Nodes added", `${neurons.length - startingCount} in ${category.replaceAll("_", " ")}`, 5000);
   }
 }
 
@@ -435,7 +436,7 @@ function checkLearning(category) {
     growthCooldowns.set(category, elapsed);
     const discovery = !discoveredClusters.has(category) && matching >= 5;
     createGrowthEvent(category, discovery);
-    if (!discovery) showToast("Neural pathways strengthened", `${category.replace("_", " ")} cluster adapting`, 2600);
+    if (!discovery) showToast("Nodes added", `${category.replaceAll("_", " ")} area grew`, 2600);
   }
 }
 

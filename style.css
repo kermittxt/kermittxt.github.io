@@ -105,7 +105,7 @@ body {
   transition: opacity 350ms ease, transform 350ms ease;
 }
 .event-toast.visible { opacity: 1; transform: translate(-50%, 0); }
-.toast-icon { color: #9eacba; font-size: 17px; }
+.toast-indicator { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: #3983ff; }
 .toast-copy { display: flex; flex-direction: column; gap: 3px; white-space: nowrap; }
 .toast-copy strong { font-size: 10px; font-weight: 700; }
 .toast-copy small { color: var(--muted); font-size: 9px; }
