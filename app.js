@@ -1,10 +1,10 @@
 const THREE = window.THREE;
 
 const ROOT = document.querySelector("#scene");
-const MAX_NEURONS = 1800;
+const MAX_NEURONS = 1543;
 const MAX_CAPSULES = 24;
 const MAX_ACTIVE_REQUESTS = 3;
-const INITIAL_NEURONS = 1000 + Math.floor(Math.random() * 801);
+const INITIAL_NEURONS = 1543;
 const EDGE_CAPACITY = 10000;
 const CATEGORIES = ["reasoning", "coding", "math", "language", "planning", "creative", "vision", "tool_use", "memory", "science", "history", "general_chat"];
 const CATEGORY_COLORS = {
