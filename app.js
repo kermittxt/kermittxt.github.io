@@ -2,29 +2,30 @@ const THREE = window.THREE;
 
 const ROOT = document.querySelector("#scene");
 const MAX_NEURONS = 1800;
-const MAX_CAPSULES = 520;
+const MAX_CAPSULES = 24;
+const MAX_ACTIVE_REQUESTS = 3;
 const INITIAL_NEURONS = 1200;
 const EDGE_CAPACITY = 14000;
 const CATEGORIES = ["coding", "reasoning", "math", "vision", "tool_use", "science", "history", "language", "general_chat"];
-const REQUEST_COLORS = [0x55aaff, 0xff5f75, 0x62f3a5, 0xffd45b, 0xb88aff, 0xff7fd1, 0x54e9f2];
+const REQUEST_COLORS = [0x83a8ca, 0xc78185, 0x8daf92, 0xb5a776, 0x9b8ab8, 0xb88da9, 0x7eafb0];
 const CATEGORY_COLORS = {
-  coding: 0x6dffad,
-  reasoning: 0xb57aff,
-  math: 0xffad62,
-  vision: 0x5c91ff,
-  tool_use: 0x6dffad,
-  science: 0x82cbff,
-  history: 0xffad62,
-  language: 0x43e5f4,
-  general_chat: 0xf2f5ff
+  coding: 0x779b84,
+  reasoning: 0x8979a1,
+  math: 0xb08b68,
+  vision: 0x718ba8,
+  tool_use: 0x779b84,
+  science: 0x7293a9,
+  history: 0xa28c71,
+  language: 0x67999b,
+  general_chat: 0xa7afb7
 };
 const REGION_COLORS = {
-  input: 0x5c91ff,
-  language: 0x43e5f4,
-  reasoning: 0xb57aff,
-  memory: 0xffad62,
-  tools: 0x6dffad,
-  output: 0xf2f5ff
+  input: 0x6483a7,
+  language: 0x5d9294,
+  reasoning: 0x83759c,
+  memory: 0xa4896d,
+  tools: 0x72917b,
+  output: 0xaeb6bf
 };
 const REGION_CATEGORIES = {
   input: ["vision"],
@@ -48,8 +49,8 @@ const CATEGORY_REGIONS = {
 const SUBSYSTEMS = ["input", "language", "reasoning", "memory", "tools", "output"];
 const clock = new THREE.Clock();
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x04050b);
-scene.fog = new THREE.FogExp2(0x04050b, 0.012);
+scene.background = new THREE.Color(0x080b10);
+scene.fog = new THREE.FogExp2(0x080b10, 0.018);
 
 const camera = new THREE.PerspectiveCamera(46, innerWidth / innerHeight, 0.1, 220);
 camera.position.set(0, 1.7, 22);
@@ -69,14 +70,14 @@ controls.enablePan = false;
 controls.minDistance = 11;
 controls.maxDistance = 34;
 controls.autoRotate = true;
-controls.autoRotateSpeed = 0.22;
+controls.autoRotateSpeed = 0.08;
 
 const composer = new THREE.EffectComposer(renderer);
 composer.addPass(new THREE.RenderPass(scene, camera));
-const bloom = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.72, 0.7, 0.18);
-bloom.threshold = 0.17;
-bloom.strength = 0.74;
-bloom.radius = 0.7;
+const bloom = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.2, 0.45, 0.72);
+bloom.threshold = 0.72;
+bloom.strength = 0.18;
+bloom.radius = 0.35;
 composer.addPass(bloom);
 
 const neurons = [];
@@ -98,10 +99,9 @@ const regionCenters = {
   output: new THREE.Vector3(-3.45, -1.35, 0.5)
 };
 const clusterCenters = new Map();
-const startedAt = performance.now();
 let elapsed = 0;
-let nextRequestAt = 1.4;
-let nextAmbientPulse = 3;
+let nextRequestAt = 2.5;
+let nextAmbientPulse = 5;
 let lastUiUpdate = 0;
 let lastPruneCheck = 0;
 let toastTimeout;
@@ -109,8 +109,8 @@ let requestSequence = 0;
 
 for (const [region, center] of Object.entries(regionCenters)) clusterCenters.set(region, center.clone());
 
-const nodeGeometry = new THREE.SphereGeometry(0.052, 9, 7);
-const nodeMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, blending: THREE.AdditiveBlending, depthWrite: false });
+const nodeGeometry = new THREE.SphereGeometry(0.035, 8, 6);
+const nodeMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, depthWrite: false });
 const nodeMesh = new THREE.InstancedMesh(nodeGeometry, nodeMaterial, MAX_NEURONS);
 nodeMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 nodeMesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(MAX_NEURONS * 3), 3);
@@ -155,8 +155,8 @@ function createCapsuleGeometry(radius, length, radialSegments, capSegments) {
   return geometry;
 }
 
-const capsuleGeometry = createCapsuleGeometry(0.034, 0.1, 8, 4);
-const capsuleMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, blending: THREE.AdditiveBlending, depthWrite: false });
+const capsuleGeometry = createCapsuleGeometry(0.023, 0.07, 8, 4);
+const capsuleMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, depthWrite: false });
 const capsuleMesh = new THREE.InstancedMesh(capsuleGeometry, capsuleMaterial, MAX_CAPSULES);
 capsuleMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 capsuleMesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(MAX_CAPSULES * 3), 3);
@@ -165,11 +165,11 @@ capsuleMesh.count = 0;
 capsuleMesh.frustumCulled = false;
 scene.add(capsuleMesh);
 
-const sparkGeometry = new THREE.SphereGeometry(0.025, 6, 5);
-const sparkMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, blending: THREE.AdditiveBlending, depthWrite: false });
-const sparkMesh = new THREE.InstancedMesh(sparkGeometry, sparkMaterial, 220);
+const sparkGeometry = new THREE.SphereGeometry(0.018, 6, 5);
+const sparkMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, depthWrite: false });
+const sparkMesh = new THREE.InstancedMesh(sparkGeometry, sparkMaterial, 80);
 sparkMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-sparkMesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(220 * 3), 3);
+sparkMesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(80 * 3), 3);
 sparkMesh.instanceColor.setUsage(THREE.DynamicDrawUsage);
 sparkMesh.count = 0;
 sparkMesh.frustumCulled = false;
@@ -183,8 +183,7 @@ edgeGeometry.setAttribute("color", new THREE.BufferAttribute(edgeColors, 3).setU
 const edgeMaterial = new THREE.MeshBasicMaterial({
   vertexColors: true,
   transparent: true,
-  opacity: 0.7,
-  blending: THREE.AdditiveBlending,
+  opacity: 0.48,
   depthWrite: false,
   side: THREE.DoubleSide
 });
@@ -238,7 +237,7 @@ function addNeuron({ position, region, category, base = false, growth = 1, speci
     pruning: false,
     pruneStarted: 0,
     pulse: Math.random() * Math.PI * 2,
-    pulseAmount: Math.random() * 0.08
+    pulseAmount: Math.random() * 0.03
   });
   return index;
 }
@@ -284,38 +283,6 @@ for (let i = 0; i < INITIAL_NEURONS; i++) {
   for (const neighbor of nearest) addEdge(i, neighbor.index, 1);
 }
 nodeMesh.count = neurons.length;
-
-function createStars() {
-  const count = 2800;
-  const positions = new Float32Array(count * 3);
-  const colors = new Float32Array(count * 3);
-  for (let i = 0; i < count; i++) {
-    const point = randomInSphere(92);
-    if (point.length() < 35) point.setLength(35 + Math.random() * 25);
-    positions.set([point.x, point.y, point.z], i * 3);
-    const tint = Math.random();
-    colors.set([
-      0.52 + tint * 0.34,
-      0.59 + Math.random() * 0.3,
-      0.85 + Math.random() * 0.15
-    ], i * 3);
-  }
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-  geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-  const material = new THREE.PointsMaterial({
-    size: 0.095,
-    vertexColors: true,
-    transparent: true,
-    opacity: 0.74,
-    sizeAttenuation: true,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false
-  });
-  scene.add(new THREE.Points(geometry, material));
-}
-
-createStars();
 
 function chooseCategory() {
   const roll = Math.random();
@@ -393,7 +360,7 @@ function createRequest() {
     category,
     color: new THREE.Color(REQUEST_COLORS[Math.floor(Math.random() * REQUEST_COLORS.length)]),
     age: 0,
-    lifetime: 5 + Math.random() * 10,
+    lifetime: 6 + Math.random() * 5,
     finished: false,
     fade: 1
   };
@@ -401,7 +368,7 @@ function createRequest() {
   knowledge[category] += 1;
   recentRequests.push({ category, time: elapsed });
   const start = chooseStart(category);
-  const count = 20 + Math.floor(Math.random() * 29);
+  const count = 1 + Math.floor(Math.random() * 2);
   if (start >= 0) {
     for (let i = 0; i < count && capsules.length < MAX_CAPSULES; i++) addCapsule(request, start);
     neurons[start].heat += 0.7;
@@ -430,7 +397,7 @@ function clusterPosition(category) {
 
 function createGrowthEvent(category, discovery = false) {
   const target = clusterPosition(category);
-  const count = discovery ? 10 : 4 + Math.floor(Math.random() * 3);
+  const count = discovery ? 5 : 2 + Math.floor(Math.random() * 2);
   for (let i = 0; i < count && neurons.length < MAX_NEURONS; i++) {
     const end = target.clone().add(randomInSphere(discovery ? 1.8 : 1.25));
     const seed = target.clone().add(randomInSphere(0.22));
@@ -456,25 +423,25 @@ function createGrowthEvent(category, discovery = false) {
   if (discovery) {
     discoveredClusters.add(category);
     showToast("New knowledge cluster formed", `${category.replace("_", " ")} is taking shape`, 5000);
-    bloom.strength = 1.35;
+    bloom.strength = 0.32;
   }
 }
 
 function checkLearning(category) {
-  const recent = recentRequests.filter(request => elapsed - request.time < 60);
+  const recent = recentRequests.filter(request => elapsed - request.time < 180);
   const matching = recent.filter(request => request.category === category).length;
-  if (matching >= 5 && elapsed - (growthCooldowns.get(category) ?? -Infinity) > 24) {
+  if (matching >= 3 && elapsed - (growthCooldowns.get(category) ?? -Infinity) > 75) {
     growthCooldowns.set(category, elapsed);
-    const discovery = !discoveredClusters.has(category) && matching >= 6;
+    const discovery = !discoveredClusters.has(category) && matching >= 5;
     createGrowthEvent(category, discovery);
     if (!discovery) showToast("Neural pathways strengthened", `${category.replace("_", " ")} cluster adapting`, 2600);
   }
 }
 
 function maybeSplit(capsule) {
-  if (capsules.length >= MAX_CAPSULES - 2 || capsule.splitCooldown > 0 || Math.random() > 0.0018) return;
+  if (capsules.length >= MAX_CAPSULES - 1 || capsule.splitCooldown > 0 || Math.random() > 0.004) return;
   capsule.splitCooldown = 1.8 + Math.random() * 2;
-  for (let i = 0; i < 1 + Math.floor(Math.random() * 3) && capsules.length < MAX_CAPSULES; i++) {
+  for (let i = 0; i < 1 && capsules.length < MAX_CAPSULES; i++) {
     const next = chooseNextNode(capsule.to, capsule.from, capsule.request.category);
     if (!next) break;
     capsules.push({
@@ -493,13 +460,13 @@ function maybeSplit(capsule) {
 
 function flashOutput(request) {
   const candidates = neurons.filter(node => node.active && (node.region === "output" || node.category === "general_chat" || node.category === "language"));
-  for (let i = 0; i < Math.min(9, candidates.length); i++) {
+  for (let i = 0; i < Math.min(4, candidates.length); i++) {
     const node = candidates[Math.floor(Math.random() * candidates.length)];
     node.heat += 5 + Math.random() * 4;
     node.lastActive = elapsed;
   }
   const outputNodes = candidates.slice(0, 5);
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < 4 && sparks.length < 80; i++) {
     const origin = outputNodes[Math.floor(Math.random() * outputNodes.length)];
     const position = origin ? origin.position.clone() : new THREE.Vector3();
     const direction = position.clone().normalize().add(randomInSphere(0.45)).normalize();
@@ -551,7 +518,7 @@ function updateNeurons(dt) {
     specializationColor.setHex(specialization);
     tempColor.copy(node.color).lerp(specializationColor, mastery);
     tempColor.lerp(whiteColor, Math.min(0.96, heat * 0.86));
-    tempColor.multiplyScalar(0.72 + heat * 1.75 + (1 - node.growth) * 0.45);
+    tempColor.multiplyScalar(0.55 + heat * 0.85 + (1 - node.growth) * 0.2);
     nodeMesh.setColorAt(i, tempColor);
   }
   nodeMesh.count = neurons.length;
@@ -654,11 +621,11 @@ function updateEdges(dt) {
     edgeMidpoint.copy(start).add(end).multiplyScalar(0.5);
     edgeSide.subVectors(viewDirection, edgeMidpoint).normalize().cross(edgeDirection).normalize();
     if (edgeSide.lengthSq() < 0.01) edgeSide.set(0, 1, 0);
-    const halfWidth = (0.003 + edge.strength * 0.007 + edge.activity * 0.012) * edge.growth;
+    const halfWidth = (0.0018 + edge.strength * 0.003 + edge.activity * 0.005) * edge.growth;
     const remaining = a.pruning ? Math.max(0, 1 - (elapsed - a.pruneStarted) / 4) : 1;
     const endRemaining = b.pruning ? Math.max(0, 1 - (elapsed - b.pruneStarted) / 4) : 1;
     const fade = Math.min(remaining, endRemaining);
-    const brightness = (0.12 + edge.strength * 0.12 + edge.activity * 0.2) * edge.growth * fade;
+    const brightness = (0.1 + edge.strength * 0.1 + edge.activity * 0.12) * edge.growth * fade;
     edgeColor.copy(a.color).lerp(b.color, 0.3).multiplyScalar(brightness);
     const offset = visibleEdges * 18;
     partialEnd.copy(start).lerp(end, edge.growth);
@@ -770,18 +737,19 @@ function updateAmbient(dt) {
     }
     nextAmbientPulse = elapsed + 2 + Math.random() * 4;
   }
-  if (elapsed >= nextRequestAt) {
+  if (elapsed >= nextRequestAt && requests.length < MAX_ACTIVE_REQUESTS) {
     createRequest();
-    nextRequestAt = elapsed + 1 + Math.random() * 3;
+    nextRequestAt = elapsed + 8 + Math.random() * 8;
   }
-  while (recentRequests.length && elapsed - recentRequests[0].time > 60) recentRequests.shift();
+  while (recentRequests.length && elapsed - recentRequests[0].time > 180) recentRequests.shift();
 }
 
 function updateStats() {
   document.querySelector("#active-requests").textContent = String(requests.length).padStart(2, "0");
   document.querySelector("#active-capsules").textContent = String(capsules.length).padStart(3, "0");
   document.querySelector("#neuron-count").textContent = neurons.filter(node => node.active).length.toLocaleString("en-US");
-  document.querySelector("#learning-count").textContent = `${recentRequests.length} patterns`;
+  const requestsPerMinute = recentRequests.filter(request => elapsed - request.time < 60).length;
+  document.querySelector("#learning-count").textContent = `${requestsPerMinute} req / min`;
   const minutes = Math.floor(elapsed / 60).toString().padStart(2, "0");
   const seconds = Math.floor(elapsed % 60).toString().padStart(2, "0");
   document.querySelector("#uptime").textContent = `${minutes}:${seconds}`;
@@ -804,7 +772,7 @@ function animate() {
     lastUiUpdate = elapsed;
     updateStats();
   }
-  if (Math.abs(bloom.strength - 0.74) > 0.01) bloom.strength = THREE.MathUtils.damp(bloom.strength, 0.74, 1.5, dt);
+  if (Math.abs(bloom.strength - 0.18) > 0.01) bloom.strength = THREE.MathUtils.damp(bloom.strength, 0.18, 1.5, dt);
 }
 
 function handleResize() {
