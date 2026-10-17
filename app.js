@@ -4,7 +4,7 @@ const ROOT = document.querySelector("#scene");
 const MAX_NEURONS = 1800;
 const MAX_CAPSULES = 24;
 const MAX_ACTIVE_REQUESTS = 3;
-const INITIAL_NEURONS = 1200;
+const INITIAL_NEURONS = 1000 + Math.floor(Math.random() * 801);
 const EDGE_CAPACITY = 10000;
 const CATEGORIES = ["reasoning", "coding", "math", "language", "planning", "creative", "vision", "tool_use", "memory", "science", "history", "general_chat"];
 const CATEGORY_COLORS = {
@@ -21,6 +21,7 @@ const CATEGORY_COLORS = {
   history: 0x9c8b74,
   general_chat: 0xaeb8c3
 };
+const REQUEST_COLORS = Object.values(CATEGORY_COLORS);
 const REGION_COLORS = CATEGORY_COLORS;
 const REGION_CATEGORIES = Object.fromEntries(CATEGORIES.map(category => [category, [category]]));
 const CATEGORY_REGIONS = {
@@ -84,6 +85,7 @@ let nextRequestAt = 2.5;
 let nextAmbientPulse = 5;
 let lastUiUpdate = 0;
 let lastPruneCheck = 0;
+let renderedRequestKey = null;
 let toastTimeout;
 let requestSequence = 0;
 
@@ -208,6 +210,8 @@ function addNeuron({ position, region, category, base = false, growth = 1, speci
     region: fallbackRegion,
     category: specialization,
     color: new THREE.Color(special ? CATEGORY_COLORS[specialization] : REGION_COLORS[fallbackRegion]),
+    requestColor: new THREE.Color(0x000000),
+    requestHeat: 0,
     heat: 0,
     lastActive: elapsed,
     growth,
@@ -229,7 +233,17 @@ function addEdge(a, b, growth = 1) {
   const key = `${lo}:${hi}`;
   if (edgeKeys.has(key)) return null;
   edgeKeys.add(key);
-  const edge = { a, b, origin: a, strength: growth ? 0.42 : 0.05, activity: 0, growth, active: true, lastUsed: elapsed };
+  const edge = {
+    a,
+    b,
+    origin: a,
+    strength: growth ? 0.42 : 0.05,
+    activity: 0,
+    requestColor: new THREE.Color(0x000000),
+    growth,
+    active: true,
+    lastUsed: elapsed
+  };
   edges.push(edge);
   neurons[a].edges.push(edge);
   neurons[b].edges.push(edge);
@@ -335,13 +349,19 @@ function addCapsule(request, startNode) {
   });
 }
 
+function chooseRequestColor() {
+  const usedColors = new Set(requests.map(request => request.color.getHex()));
+  const available = REQUEST_COLORS.filter(color => !usedColors.has(color));
+  return available[Math.floor(Math.random() * available.length)] || CATEGORY_COLORS.general_chat;
+}
+
 function createRequest() {
   const category = chooseCategory();
   const id = `REQ-${String(++requestSequence).padStart(4, "0")}`;
   const request = {
     id,
     category,
-    color: new THREE.Color(CATEGORY_COLORS[category]),
+    color: new THREE.Color(chooseRequestColor()),
     age: 0,
     lifetime: 6 + Math.random() * 5,
     finished: false,
@@ -354,8 +374,7 @@ function createRequest() {
   const count = 1 + Math.floor(Math.random() * 2);
   if (start >= 0) {
     for (let i = 0; i < count && capsules.length < MAX_CAPSULES; i++) addCapsule(request, start);
-    neurons[start].heat += 0.7;
-    neurons[start].lastActive = elapsed;
+    markNeuron(start, 0.7, request);
   }
   checkLearning(category);
 }
@@ -477,6 +496,7 @@ function updateNeurons(dt) {
   for (let i = 0; i < neurons.length; i++) {
     const node = neurons[i];
     node.heat = Math.max(0, node.heat - dt * 0.22);
+    node.requestHeat = Math.max(0, node.requestHeat - dt * 0.28);
     node.pulse += dt * (0.6 + node.pulseAmount * 3);
     if (node.growth < 1) {
       node.growth = Math.min(1, node.growth + dt * 0.55);
@@ -500,6 +520,7 @@ function updateNeurons(dt) {
     specializationColor.setHex(specialization);
     tempColor.copy(node.color).lerp(specializationColor, mastery);
     tempColor.lerp(whiteColor, Math.min(0.96, heat * 0.86));
+    tempColor.lerp(node.requestColor, node.requestHeat * 0.9);
     tempColor.multiplyScalar(0.55 + heat * 0.85 + (1 - node.growth) * 0.2);
     nodeMesh.setColorAt(i, tempColor);
   }
@@ -508,10 +529,14 @@ function updateNeurons(dt) {
   nodeMesh.instanceColor.needsUpdate = true;
 }
 
-function markNeuron(index, intensity = 1) {
+function markNeuron(index, intensity = 1, request = null) {
   const node = neurons[index];
   if (!node || !node.active) return;
   node.heat = Math.min(16, node.heat + intensity);
+  if (request) {
+    node.requestColor.copy(request.color);
+    node.requestHeat = Math.min(1, node.requestHeat + 0.72);
+  }
   node.lastActive = elapsed;
 }
 
@@ -542,7 +567,10 @@ function updateCapsules(dt) {
         capsule.progress += dt * capsule.speed * strengthSpeed / length;
         if (capsule.progress >= 1) {
           const arrived = capsule.to;
-          markNeuron(arrived, 1);
+          markNeuron(arrived, 1, request);
+          capsule.edge.requestColor.copy(request.color);
+          capsule.edge.activity = Math.min(1, capsule.edge.activity + 0.22);
+          capsule.edge.lastUsed = elapsed;
           capsule.previous = capsule.from;
           capsule.from = arrived;
           capsule.progress = 0;
@@ -608,7 +636,8 @@ function updateEdges(dt) {
     const endRemaining = b.pruning ? Math.max(0, 1 - (elapsed - b.pruneStarted) / 4) : 1;
     const fade = Math.min(remaining, endRemaining);
     const brightness = (0.1 + edge.strength * 0.1 + edge.activity * 0.12) * edge.growth * fade;
-    edgeColor.copy(a.color).lerp(b.color, 0.3).multiplyScalar(brightness);
+    edgeColor.copy(a.color).lerp(b.color, 0.3);
+    edgeColor.lerp(edge.requestColor, edge.activity * 0.82).multiplyScalar(brightness);
     const offset = visibleEdges * 18;
     partialEnd.copy(start).lerp(end, edge.growth);
     const sx = start.x;
@@ -732,9 +761,42 @@ function updateStats() {
   document.querySelector("#neuron-count").textContent = neurons.filter(node => node.active).length.toLocaleString("en-US");
   const requestsPerMinute = recentRequests.filter(request => elapsed - request.time < 60).length;
   document.querySelector("#learning-count").textContent = `${requestsPerMinute} req / min`;
+  renderActiveRequests();
   const minutes = Math.floor(elapsed / 60).toString().padStart(2, "0");
   const seconds = Math.floor(elapsed % 60).toString().padStart(2, "0");
   document.querySelector("#uptime").textContent = `${minutes}:${seconds}`;
+}
+
+function renderActiveRequests() {
+  const list = document.querySelector("#active-request-list");
+  const key = requests.map(request => `${request.id}:${request.category}:${request.color.getHexString()}`).join("|");
+  if (key === renderedRequestKey) return;
+  renderedRequestKey = key;
+  list.replaceChildren();
+  if (!requests.length) {
+    const empty = document.createElement("span");
+    empty.className = "request-empty";
+    empty.textContent = "No active requests";
+    list.appendChild(empty);
+    return;
+  }
+  for (const request of requests) {
+    const row = document.createElement("div");
+    row.className = "request-item";
+    row.style.setProperty("--request-color", `#${request.color.getHexString()}`);
+
+    const marker = document.createElement("i");
+    marker.setAttribute("aria-hidden", "true");
+    const label = document.createElement("span");
+    label.className = "request-label";
+    label.textContent = request.id;
+    const category = document.createElement("span");
+    category.className = "request-category";
+    category.textContent = request.category.replaceAll("_", " ");
+
+    row.append(marker, label, category);
+    list.appendChild(row);
+  }
 }
 
 function animate() {

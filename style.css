@@ -74,6 +74,14 @@ body {
 .learning-row { display: flex; align-items: center; gap: 7px; padding-top: 12px; border-top: 1px solid #1a1d24; color: #a1aab3; font-size: 8px; }
 .learning-indicator { width: 6px; height: 6px; border-radius: 50%; background: #3983ff; }
 .learning-value { margin-left: auto; color: #87919a; letter-spacing: 0; }
+.request-trace { margin-top: 11px; padding-top: 9px; border-top: 1px solid #1a1d24; }
+.request-trace-title { margin-bottom: 7px; color: #858d98; font-family: "DM Mono", monospace; font-size: 7px; letter-spacing: .1em; }
+.active-request-list { display: flex; flex-direction: column; gap: 6px; }
+.request-item { display: grid; grid-template-columns: 7px 1fr auto; align-items: center; gap: 7px; min-width: 0; color: #c5cbd2; font-family: "DM Mono", monospace; font-size: 8px; }
+.request-item i { width: 6px; height: 6px; border-radius: 50%; background: var(--request-color); box-shadow: 0 0 8px color-mix(in srgb, var(--request-color) 55%, transparent); }
+.request-label { color: #e1e5e9; }
+.request-category { overflow: hidden; color: #89929d; text-overflow: ellipsis; text-transform: capitalize; white-space: nowrap; }
+.request-empty { color: #737d88; font-family: "DM Mono", monospace; font-size: 8px; }
 .legend-panel { right: 38px; top: 50%; width: 324px; max-height: min(76vh, 690px); padding: 16px; transform: translateY(-50%); }
 .legend-list { display: flex; flex-direction: column; gap: 11px; margin-top: 16px; overflow-y: auto; max-height: calc(min(76vh, 690px) - 52px); scrollbar-color: #303844 transparent; scrollbar-width: thin; }
 .legend-item { display: grid; grid-template-columns: 9px 1fr; align-items: start; gap: 10px; color: #c1c6ce; font-size: 10px; line-height: 1.45; }
@@ -159,6 +167,10 @@ body {
   .stat-label { font-size: 6px; letter-spacing: .07em; white-space: normal; }
   .stat-value { font-size: 16px; }
   .learning-row { padding-top: 8px; font-size: 7px; }
+  .request-trace { margin-top: 8px; padding-top: 7px; }
+  .request-trace-title { margin-bottom: 5px; }
+  .active-request-list { gap: 4px; }
+  .request-item { font-size: 7px; }
   .legend-panel {
     top: auto;
     right: 12px;
