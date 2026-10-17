@@ -3,9 +3,9 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#080b10">
-    <meta name="description" content="A restrained live visualization of a small API serving a 2-billion-parameter model.">
-    <title>AI Neural Network Visualizer</title>
+    <meta name="theme-color" content="#050505">
+    <meta name="description" content="A color-coded inference visualization for Core's core-1.3-nova API model.">
+    <title>core-1.3-nova — Core AI API</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -16,14 +16,14 @@
       <div id="scene" class="scene" aria-label="Animated 3D visualization of a learning neural network"></div>
 
       <header class="topbar">
-        <a class="brand" href="#" aria-label="AI Neural Network Visualizer home">
+        <a class="brand" href="#" aria-label="Core core-1.3-nova visualizer home">
           <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
           <span class="brand-copy">
-            <span class="eyebrow">2.0B PARAMETER MODEL <span class="eyebrow-divider">/</span> INFERENCE VIEW</span>
-            <span class="brand-title">AI Neural Network <span>Visualizer</span></span>
+            <span class="eyebrow">CORE AI API <span class="eyebrow-divider">/</span> 2B-PARAMETER MODEL</span>
+            <span class="brand-title">core-1.3-nova <span>Inference View</span></span>
           </span>
         </a>
-        <div class="system-status"><span class="status-dot"></span><span>LOW API LOAD</span></div>
+        <div class="system-status"><span class="status-dot"></span><span>CORE AI API</span></div>
       </header>
 
       <section class="stats-panel glass-panel" aria-label="Network statistics">
@@ -44,21 +44,26 @@
         </div>
         <div class="learning-row">
           <span class="learning-indicator"></span>
-          <span id="learning-status">SIMULATED INFERENCE</span>
+          <span id="learning-status">INFERENCE</span>
           <span class="learning-value" id="learning-count">0 req / min</span>
         </div>
-        <div class="scale-note">STRUCTURAL VIEW <span>/</span> NOT TO SCALE</div>
       </section>
 
-      <section class="legend-panel glass-panel" aria-label="Neural subsystem legend">
-        <div class="section-label"><span class="tiny-cross">+</span> FUNCTIONAL AREAS</div>
+      <section class="legend-panel glass-panel" aria-label="Capability color key">
+        <div class="section-label"><span class="tiny-cross">+</span> CAPABILITY COLOR KEY</div>
         <div class="legend-list">
-          <div class="legend-item"><i style="--swatch:#6483a7"></i><span>Input processing</span></div>
-          <div class="legend-item"><i style="--swatch:#5d9a9d"></i><span>Language</span></div>
-          <div class="legend-item"><i style="--swatch:#8979aa"></i><span>Reasoning</span></div>
-          <div class="legend-item"><i style="--swatch:#b08b68"></i><span>Memory</span></div>
-          <div class="legend-item"><i style="--swatch:#72967e"></i><span>Tools</span></div>
-          <div class="legend-item"><i style="--swatch:#b6bdc7"></i><span>Output</span></div>
+          <div class="legend-item" style="--swatch:#448aff"><i></i><span><strong>Logical thinking</strong><small>Analyzing information &amp; making decisions</small></span></div>
+          <div class="legend-item" style="--swatch:#ff9f43"><i></i><span><strong>Programming</strong><small>Programming, debugging &amp; understanding code</small></span></div>
+          <div class="legend-item" style="--swatch:#ff5c63"><i></i><span><strong>Mathematics</strong><small>Calculations, equations &amp; mathematical problem solving</small></span></div>
+          <div class="legend-item" style="--swatch:#b57aff"><i></i><span><strong>Language</strong><small>Understanding prompts, writing &amp; communication</small></span></div>
+          <div class="legend-item" style="--swatch:#ffd34f"><i></i><span><strong>Problem solving</strong><small>Breaking down complex problems &amp; finding solutions</small></span></div>
+          <div class="legend-item" style="--swatch:#a87852"><i></i><span><strong>Creative thinking</strong><small>Generating ideas, stories &amp; original concepts</small></span></div>
+          <div class="legend-item" style="--swatch:#42c5d5"><i></i><span><strong>Vision</strong><small>Image and visual understanding</small></span></div>
+          <div class="legend-item" style="--swatch:#67c98a"><i></i><span><strong>Tool use</strong><small>Actions and external utilities</small></span></div>
+          <div class="legend-item" style="--swatch:#c2a37a"><i></i><span><strong>Memory</strong><small>Recall and contextual references</small></span></div>
+          <div class="legend-item" style="--swatch:#6ca7c8"><i></i><span><strong>Science</strong><small>Scientific concepts and questions</small></span></div>
+          <div class="legend-item" style="--swatch:#9c8b74"><i></i><span><strong>History</strong><small>Events and historical context</small></span></div>
+          <div class="legend-item" style="--swatch:#aeb8c3"><i></i><span><strong>General chat</strong><small>Everyday questions and responses</small></span></div>
         </div>
       </section>
 
@@ -68,23 +73,16 @@
       </div>
 
       <footer class="bottom-bar">
-        <span><span class="footer-dot"></span> INFERENCE SIMULATION <span class="footer-divider">/</span> <span id="uptime">00:00</span></span>
+        <span><span class="footer-dot"></span> CORE AI API <span class="footer-divider">/</span> <span id="uptime">00:00</span></span>
         <span class="interaction-hint">DRAG TO ROTATE <span>·</span> SCROLL TO ZOOM</span>
       </footer>
 
       <div class="loading-state" id="loading-state">
         <span class="loader"></span>
-        <span>INITIALIZING NEURAL FIELD</span>
+        <span>INITIALIZING CORE-1.3-NOVA VIEW</span>
       </div>
     </main>
     <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/ConvolutionShader.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script defer src="./app.js"></script>
   </body>

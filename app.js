@@ -5,58 +5,50 @@ const MAX_NEURONS = 1800;
 const MAX_CAPSULES = 24;
 const MAX_ACTIVE_REQUESTS = 3;
 const INITIAL_NEURONS = 1200;
-const EDGE_CAPACITY = 14000;
-const CATEGORIES = ["coding", "reasoning", "math", "vision", "tool_use", "science", "history", "language", "general_chat"];
-const REQUEST_COLORS = [0x83a8ca, 0xc78185, 0x8daf92, 0xb5a776, 0x9b8ab8, 0xb88da9, 0x7eafb0];
+const EDGE_CAPACITY = 10000;
+const CATEGORIES = ["reasoning", "coding", "math", "language", "planning", "creative", "vision", "tool_use", "memory", "science", "history", "general_chat"];
 const CATEGORY_COLORS = {
-  coding: 0x779b84,
-  reasoning: 0x8979a1,
-  math: 0xb08b68,
-  vision: 0x718ba8,
-  tool_use: 0x779b84,
-  science: 0x7293a9,
-  history: 0xa28c71,
-  language: 0x67999b,
-  general_chat: 0xa7afb7
+  reasoning: 0x448aff,
+  coding: 0xff9f43,
+  math: 0xff5c63,
+  language: 0xb57aff,
+  planning: 0xffd34f,
+  creative: 0xa87852,
+  vision: 0x42c5d5,
+  tool_use: 0x67c98a,
+  memory: 0xc2a37a,
+  science: 0x6ca7c8,
+  history: 0x9c8b74,
+  general_chat: 0xaeb8c3
 };
-const REGION_COLORS = {
-  input: 0x6483a7,
-  language: 0x5d9294,
-  reasoning: 0x83759c,
-  memory: 0xa4896d,
-  tools: 0x72917b,
-  output: 0xaeb6bf
-};
-const REGION_CATEGORIES = {
-  input: ["vision"],
-  language: ["language", "general_chat"],
-  reasoning: ["reasoning", "math", "science"],
-  memory: ["history", "science"],
-  tools: ["coding", "tool_use"],
-  output: ["general_chat", "language"]
-};
+const REGION_COLORS = CATEGORY_COLORS;
+const REGION_CATEGORIES = Object.fromEntries(CATEGORIES.map(category => [category, [category]]));
 const CATEGORY_REGIONS = {
-  coding: ["tools", "reasoning"],
-  reasoning: ["reasoning"],
-  math: ["reasoning", "memory"],
-  vision: ["input"],
-  tool_use: ["tools"],
-  science: ["memory", "reasoning"],
-  history: ["memory"],
-  language: ["language"],
-  general_chat: ["language", "output"]
+  reasoning: ["reasoning", "planning"],
+  coding: ["coding", "reasoning"],
+  math: ["math", "reasoning"],
+  language: ["language", "creative"],
+  planning: ["planning", "reasoning"],
+  creative: ["creative", "language"],
+  vision: ["vision", "reasoning"],
+  tool_use: ["tool_use", "coding"],
+  memory: ["memory", "reasoning"],
+  science: ["science", "reasoning"],
+  history: ["history", "memory"],
+  general_chat: ["language", "creative"]
 };
-const SUBSYSTEMS = ["input", "language", "reasoning", "memory", "tools", "output"];
+const SUBSYSTEMS = CATEGORIES;
 const clock = new THREE.Clock();
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x080b10);
-scene.fog = new THREE.FogExp2(0x080b10, 0.018);
+scene.background = new THREE.Color(0x000000);
+scene.fog = new THREE.FogExp2(0x000000, 0.018);
 
 const camera = new THREE.PerspectiveCamera(46, innerWidth / innerHeight, 0.1, 220);
-camera.position.set(0, 1.7, 22);
+let compactViewport = innerWidth <= 700;
+camera.position.set(0, 1.7, compactViewport ? 34 : 22);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.7));
+const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, powerPreference: "high-performance" });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.35));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -68,17 +60,9 @@ controls.enableDamping = true;
 controls.dampingFactor = 0.045;
 controls.enablePan = false;
 controls.minDistance = 11;
-controls.maxDistance = 34;
+controls.maxDistance = compactViewport ? 46 : 34;
 controls.autoRotate = true;
 controls.autoRotateSpeed = 0.08;
-
-const composer = new THREE.EffectComposer(renderer);
-composer.addPass(new THREE.RenderPass(scene, camera));
-const bloom = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.2, 0.45, 0.72);
-bloom.threshold = 0.72;
-bloom.strength = 0.18;
-bloom.radius = 0.35;
-composer.addPass(bloom);
 
 const neurons = [];
 const edges = [];
@@ -89,15 +73,11 @@ const sparks = [];
 const knowledge = Object.fromEntries(CATEGORIES.map(category => [category, 0]));
 const recentRequests = [];
 const growthCooldowns = new Map();
-const discoveredClusters = new Set(["coding", "reasoning", "math", "vision", "tool_use", "general_chat"]);
-const regionCenters = {
-  input: new THREE.Vector3(-3.1, 1.4, 0.4),
-  language: new THREE.Vector3(0.5, 3.25, 0.2),
-  reasoning: new THREE.Vector3(3.1, 1.25, -0.5),
-  memory: new THREE.Vector3(2.3, -2.4, 0.6),
-  tools: new THREE.Vector3(-1.1, -3.1, -0.3),
-  output: new THREE.Vector3(-3.45, -1.35, 0.5)
-};
+const discoveredClusters = new Set(["reasoning", "coding", "math", "language", "planning", "creative", "vision", "tool_use"]);
+const regionCenters = Object.fromEntries(CATEGORIES.map((category, index) => {
+  const angle = (index / CATEGORIES.length) * Math.PI * 2;
+  return [category, new THREE.Vector3(Math.cos(angle) * 3.25, Math.sin(angle * 1.6) * 2.2, Math.sin(angle) * 3.25)];
+}));
 const clusterCenters = new Map();
 let elapsed = 0;
 let nextRequestAt = 2.5;
@@ -259,7 +239,7 @@ function addEdge(a, b, growth = 1) {
 for (let i = 0; i < INITIAL_NEURONS; i++) {
   const region = SUBSYSTEMS[i % SUBSYSTEMS.length];
   const center = regionCenters[region];
-  const point = center.clone().add(randomInSphere(2.55));
+  const point = center.clone().add(randomInSphere(2.05));
   if (point.length() > 7.6) point.setLength(7.6);
   addNeuron({ position: point, region, base: true });
   neurons[i].edges = [];
@@ -273,11 +253,11 @@ for (let i = 0; i < INITIAL_NEURONS; i++) {
   for (let j = 0; j < INITIAL_NEURONS; j++) {
     if (i === j) continue;
     const distance = point.distanceToSquared(neurons[j].position);
-    if (nearest.length < 5 || distance < nearest[nearest.length - 1].distance) {
+    if (nearest.length < 3 || distance < nearest[nearest.length - 1].distance) {
       let insertAt = nearest.findIndex(item => distance < item.distance);
       if (insertAt === -1) insertAt = nearest.length;
       nearest.splice(insertAt, 0, { index: j, distance });
-      if (nearest.length > 5) nearest.pop();
+      if (nearest.length > 3) nearest.pop();
     }
   }
   for (const neighbor of nearest) addEdge(i, neighbor.index, 1);
@@ -286,14 +266,17 @@ nodeMesh.count = neurons.length;
 
 function chooseCategory() {
   const roll = Math.random();
-  if (roll < 0.17) return "coding";
-  if (roll < 0.32) return "reasoning";
-  if (roll < 0.44) return "math";
-  if (roll < 0.55) return "vision";
-  if (roll < 0.68) return "tool_use";
-  if (roll < 0.78) return "science";
-  if (roll < 0.86) return "history";
-  if (roll < 0.94) return "language";
+  if (roll < 0.15) return "reasoning";
+  if (roll < 0.30) return "coding";
+  if (roll < 0.39) return "math";
+  if (roll < 0.53) return "language";
+  if (roll < 0.63) return "planning";
+  if (roll < 0.70) return "creative";
+  if (roll < 0.76) return "vision";
+  if (roll < 0.83) return "tool_use";
+  if (roll < 0.89) return "memory";
+  if (roll < 0.93) return "science";
+  if (roll < 0.96) return "history";
   return "general_chat";
 }
 
@@ -358,7 +341,7 @@ function createRequest() {
   const request = {
     id,
     category,
-    color: new THREE.Color(REQUEST_COLORS[Math.floor(Math.random() * REQUEST_COLORS.length)]),
+    color: new THREE.Color(CATEGORY_COLORS[category]),
     age: 0,
     lifetime: 6 + Math.random() * 5,
     finished: false,
@@ -423,7 +406,6 @@ function createGrowthEvent(category, discovery = false) {
   if (discovery) {
     discoveredClusters.add(category);
     showToast("New knowledge cluster formed", `${category.replace("_", " ")} is taking shape`, 5000);
-    bloom.strength = 0.32;
   }
 }
 
@@ -459,7 +441,7 @@ function maybeSplit(capsule) {
 }
 
 function flashOutput(request) {
-  const candidates = neurons.filter(node => node.active && (node.region === "output" || node.category === "general_chat" || node.category === "language"));
+  const candidates = neurons.filter(node => node.active && ["general_chat", "language", "creative"].includes(node.category));
   for (let i = 0; i < Math.min(4, candidates.length); i++) {
     const node = candidates[Math.floor(Math.random() * candidates.length)];
     node.heat += 5 + Math.random() * 4;
@@ -757,7 +739,7 @@ function updateStats() {
 
 function animate() {
   requestAnimationFrame(animate);
-  const dt = Math.min(clock.getDelta(), 0.04);
+  const dt = Math.min(clock.getDelta(), 0.1);
   elapsed += dt;
   updateAmbient(dt);
   updateRequests(dt);
@@ -767,20 +749,24 @@ function animate() {
   updateSparks(dt);
   maybeStartPruning();
   controls.update();
-  composer.render();
+  renderer.render(scene, camera);
   if (elapsed - lastUiUpdate > 0.25) {
     lastUiUpdate = elapsed;
     updateStats();
   }
-  if (Math.abs(bloom.strength - 0.18) > 0.01) bloom.strength = THREE.MathUtils.damp(bloom.strength, 0.18, 1.5, dt);
 }
 
 function handleResize() {
+  const compact = innerWidth <= 700;
+  if (compact !== compactViewport) {
+    compactViewport = compact;
+    camera.position.set(0, 1.7, compact ? 34 : 22);
+    controls.maxDistance = compact ? 46 : 34;
+  }
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.7));
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.35));
   renderer.setSize(innerWidth, innerHeight);
-  composer.setSize(innerWidth, innerHeight);
 }
 
 window.addEventListener("resize", handleResize);
